@@ -16,6 +16,8 @@
 # VENVS:
 .habr_rag_env/
 
+
+
 # AWS User-specific
 .idea/**/aws.xml
 
