@@ -44,6 +44,24 @@ def get_format_instructions(parser) -> str:
 
 ### Nodes ###
 
+# def invoke_and_save(store, session_id, input_text, new_prompt_chain):
+#     """
+#     Retrieve documents
+
+#     Args:
+#         state (dict): The current graph state
+
+#     Returns:
+#         state (dict): New key added to state, documents, that contains retrieved documents
+#     """
+    
+#     save_message(session_id, "human", input_text)
+    
+#     result = new_prompt_chain.invoke(
+#         {"input": input_text},
+#         config={"configurable": {"session_id": session_id, "store": store}}
+#     )["answer"]
+#     return result
 
 def retrieve(state, retriever):
     """
