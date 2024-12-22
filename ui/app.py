@@ -1,43 +1,14 @@
-import yaml
 import streamlit as st
-import requests
 import time
-from typing import List, Dict
 
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-
-API_URL = config['streamlit']['api_answer_link']
-
-def clear_chat_history():
-    st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
-
-
-def fetch_response_from_api(user_input: str) -> Dict:
-    """Отправляет запрос в API и возвращает ответ и ссылки."""
-    try:
-        response = requests.post(
-            API_URL,
-            json={"query": user_input},
-            timeout=40
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        st.error(f"Error contacting the API: {e}")
-        return {"answer": "Sorry, something went wrong!", "links": []}
-
-
-def render_link_button(link: Dict[str, str]):
-    """Отображает кнопку для ссылки."""
-    st.link_button(link["title"], link["url"])
+from utils import fetch_response_from_api, clear_chat_history, remove_duplicate_links
 
 
 def main():
-    st.set_page_config(page_title="🪬💬 Habr Chat Bot")
+    st.set_page_config(page_title="💬 Habr Chat Bot")
 
     with st.sidebar:
-        st.title('🪬💬 Habr Chat Bot')
+        st.title('Habr Chat Bot')
         st.write(
             """Чатбот на основе RAG по Habr статьям.
             """
@@ -65,18 +36,19 @@ def main():
                 api_response = fetch_response_from_api(prompt)
                 bot_response = api_response.get("answer", "No response received.")
                 links = api_response.get("links", [])
+                links = remove_duplicate_links(links)
                 
                 placeholder = st.empty()
                 full_response = ""
                 for char in bot_response:
                     full_response += char
-                    time.sleep(0.05) 
+                    time.sleep(0.01) 
                     placeholder.markdown(full_response)
 
                 st.markdown("**Related Links:**", unsafe_allow_html=True)
 
                 for link in links:
-                    render_link_button(link)
+                    st.link_button(link["title"], link["url"])
 
         message = {"role": "assistant", "content": full_response}
         st.session_state.messages.append(message)
