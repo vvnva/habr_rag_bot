@@ -12,6 +12,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_community.chat_models import ChatOllama
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
+from db.save_and_load_history import save_message
+
 _PYDANTIC_FORMAT_INSTRUCTIONS = """The output should be formatted as a JSON instance that conforms to the JSON schema below.
 
 As an example, for the schema {{"properties": {{"foo": {{"title": "Foo", "description": "a list of strings", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
@@ -44,24 +46,59 @@ def get_format_instructions(parser) -> str:
 
 ### Nodes ###
 
-# def invoke_and_save(store, session_id, input_text, new_prompt_chain):
-#     """
-#     Retrieve documents
+def save_message_in_db(state, role):
+    """
+    Save message in DataBase
 
-#     Args:
-#         state (dict): The current graph state
+    Args:
+        state (dict): The current graph state
+        role: The role of the one whose message is being saving in DataBase
+        
+    Returns:
+        state (dict): 
+        New key added to state, documents, that contains retrieved documents
+    """
+    print("---SAVING IN DB---")
+    state_dict = state["keys"]
+    session_id = state_dict['session_id']
+    
+    if role == 'human':
+        message = state_dict["question"]
+        save_message(session_id, "human", message)
+        return {"keys": {"session_id": session_id, "question": message}}
+    elif role == 'ai':
+        message = state_dict["generation"] 
+        save_message(session_id, "ai", message)
+        return 0
+    raise ValueError ('Значение роли указано неверно, проверь на соответствие одной из этих: human, ai')
+    
+    
 
-#     Returns:
-#         state (dict): New key added to state, documents, that contains retrieved documents
-#     """
+def invoke_getting_new_prompt(state, new_prompt_chain):
+    """
+    New user prompt
+
+    Args:
+        store:
+        state (dict): The current graph state
+        
+    Returns:
+        state (dict): Updated question key state, that contains new prompt
+    """
+    print("---UPDATING PROMPT---")
+    state_dict = state["keys"]
+    question = state_dict["question"]
+    session_id = state_dict['session_id']
     
-#     save_message(session_id, "human", input_text)
-    
-#     result = new_prompt_chain.invoke(
-#         {"input": input_text},
-#         config={"configurable": {"session_id": session_id, "store": store}}
-#     )["answer"]
-#     return result
+    result = new_prompt_chain.invoke(
+        {"input": question},
+        config={"configurable": {"session_id": session_id}}
+    )
+    print("Invoke Result:", result)  # Для отладки
+
+    new_prompt = result["answer"]
+
+    return {"keys": {"session_id": session_id, "question": new_prompt}}
 
 def retrieve(state, retriever):
     """
@@ -76,9 +113,10 @@ def retrieve(state, retriever):
     print("---RETRIEVE---")
     state_dict = state["keys"]
     question = state_dict["question"]
+    session_id = state_dict['session_id']
     documents = retriever.get_relevant_documents(question)
     print(len(documents))
-    return {"keys": {"documents": documents, "question": question}}
+    return {"keys": {"documents": documents, "session_id": session_id, "question": question}}
 
 
 def grade_documents(state, llm):
@@ -96,6 +134,7 @@ def grade_documents(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    session_id = state_dict['session_id']
 
     # Prompt
     prompt = PromptTemplate(
@@ -130,7 +169,7 @@ def grade_documents(state, llm):
             print("---GRADE: DOCUMENT NOT RELEVANT---")
             continue
 
-    return {"keys": {"documents": filtered_docs, "question": question}}
+    return {"keys": {"documents": filtered_docs, "session_id": session_id, "question": question}}
 
 
 def generate(state, llm):
@@ -147,6 +186,7 @@ def generate(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    session_id = state_dict['session_id']
 
     # Prompt
     prompt = hub.pull("rlm/rag-prompt")
@@ -157,7 +197,7 @@ def generate(state, llm):
     # Run
     generation = rag_chain.invoke({"context": documents, "question": question})
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "session_id": session_id, "question": question, "generation": generation}
     }
 
 class AnswerModel(BaseModel):
@@ -186,6 +226,7 @@ def transform_query(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    session_id = state_dict['session_id']
     
     parser = PydanticOutputParser(pydantic_object=AnswerModel)
 
@@ -207,7 +248,7 @@ def transform_query(state, llm):
     chain = prompt | llm | parser
     better_question = chain.invoke({"question": question}).improved_question
 
-    return {"keys": {"documents": documents, "question": better_question}}
+    return {"keys": {"documents": documents, "session_id": session_id, "question": better_question}}
 
 
 def prepare_for_final_grade(state):
@@ -226,7 +267,8 @@ def prepare_for_final_grade(state):
     question = state_dict["question"]
     documents = state_dict["documents"]
     generation = state_dict["generation"]
+    session_id = state_dict['session_id']
 
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "session_id": session_id, "question": question, "generation": generation}
     }

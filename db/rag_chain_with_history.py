@@ -1,17 +1,21 @@
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.output_parsers import JsonOutputParser
 from langchain.chains import create_history_aware_retriever
 
-from save_and_load_history import load_session_history,save_message
+from db.save_and_load_history import load_session_history,save_message
 
 contextualize_q_system_prompt = """Учитывая историю чатов и последний вопрос пользователя, который может ссылаться на контекст в истории чата, \
-                                сформулируй отдельный вопрос, который может быть понятбез истории чата. НЕ отвечайте на вопрос, только переформулируй его, если нужно, \
-                                а в противном случае верни его как есть."""
+                                сформулируй отдельный вопрос, который может быть понят без истории чата. НЕ отвечай на вопрос, только переформулируй его, если нужно. \
+                                Переформулировка нужна в случае, если вопрос не понятен без истории чата, \
+                                в случаях если история пуста или вопрос самодостаточен - его НЕ НАДО переформулировать, просто верни его же в ответе. \
+                                Ответ выводи в виде JSON с единственным ключом 'answer', где будет находиться новый или не измененный вопрос. """
 
-def get_session_history(store, session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = load_session_history(session_id)
+
+def get_session_history(session_id: str) -> BaseChatMessageHistory:
+    store = {}
+    store[session_id] = load_session_history(session_id)
     return store[session_id]
 
 contextualize_q_prompt = ChatPromptTemplate.from_messages(
@@ -27,24 +31,15 @@ def create_new_retriver(llm,retriever):
     )
     return history_aware_retriever
 
-def create_new_prompt(new_retr):
+def create_new_prompt(llm):
+    
+    chain = contextualize_q_prompt | llm | JsonOutputParser()
+    
     new_prompt_chain = RunnableWithMessageHistory(
-    new_retr,
+    chain,
     get_session_history,
     input_messages_key="input",
     history_messages_key="chat_history",
     output_messages_key="answer",
     )
     return new_prompt_chain
-
-# Invoke the chain and save the messages after invocation
-def invoke_and_save(store, session_id, input_text, new_prompt_chain):
-    # Save the user question with role "human"
-    save_message(session_id, "human", input_text)
-    
-    result = new_prompt_chain.invoke(
-        {"input": input_text},
-        config={"configurable": {"session_id": session_id, "store": store}}
-    )["answer"]
-    
-    return result
