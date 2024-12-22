@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-from sqlalchemy.exc import SQLAlchemyError, create_retrieval_chain
+from sqlalchemy.exc import SQLAlchemyError
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
