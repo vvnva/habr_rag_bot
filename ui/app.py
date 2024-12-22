@@ -1,8 +1,13 @@
+import yaml
 import streamlit as st
 import requests
 import time
 from typing import List, Dict
 
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+
+API_URL = config['streamlit']['api_answer_link']
 
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
@@ -14,7 +19,7 @@ def fetch_response_from_api(user_input: str) -> Dict:
         response = requests.post(
             API_URL,
             json={"query": user_input},
-            timeout=10
+            timeout=40
         )
         response.raise_for_status()
         return response.json()

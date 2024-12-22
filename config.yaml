@@ -6,3 +6,5 @@ llm:
   ollama_model_name: "herenickname/t-tech_T-lite-it-1.0:q4_k_m"
   temperature: 0.2
   base_url: "http://localhost:11434"
+streamlit:
+  api_answer_link: "http://127.0.0.1:8000/rag-answer"
