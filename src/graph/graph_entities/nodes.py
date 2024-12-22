@@ -24,7 +24,7 @@ Here is the output schema:
 
 def get_format_instructions(parser) -> str:
     """Return the format instructions for the JSON output.
-
+        Needs to implement pydantic parsing.
     Returns:
         The format instructions for the JSON output.
     """
@@ -41,6 +41,7 @@ def get_format_instructions(parser) -> str:
     schema_str = json.dumps(reduced_schema, ensure_ascii=False)
 
     return _PYDANTIC_FORMAT_INSTRUCTIONS.format(schema=schema_str)
+
 
 ### Nodes ###
 
