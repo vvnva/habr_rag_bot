@@ -16,7 +16,8 @@
 # VENVS:
 .habr_rag_env/
 
-
+# QDRANT
+qdrant_data/
 
 # AWS User-specific
 .idea/**/aws.xml
