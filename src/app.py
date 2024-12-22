@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Tuple
+from dotenv import load_dotenv
 
 from src.vector_db.qdrant import get_qdrant_retriever
 from src.llm_serving.ollama_llm import get_ollama_model
 from src.graph.graph_funcs import get_compiled_graph, run_graph
+
+load_dotenv()
 
 app = FastAPI()
 retriever = get_qdrant_retriever()
