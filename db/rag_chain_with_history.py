@@ -31,15 +31,15 @@ def create_new_retriver(llm,retriever):
     )
     return history_aware_retriever
 
-def create_new_prompt(llm):
+def chat_with_history(llm):
     
     chain = contextualize_q_prompt | llm | JsonOutputParser()
     
-    new_prompt_chain = RunnableWithMessageHistory(
+    chat_with_history = RunnableWithMessageHistory(
     chain,
     get_session_history,
     input_messages_key="input",
     history_messages_key="chat_history",
     output_messages_key="answer",
     )
-    return new_prompt_chain
+    return chat_with_history
