@@ -32,7 +32,26 @@ def decide_to_generate(state):
         print("---DECISION: GENERATE---")
         return "generate"
 
+def decide_to_retry(state):
+    """
+    Decides whether to retry or exit based on the cycle count.
 
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call ('retrieve' or 'exit')
+    """
+    cycle_count = state.get("cycle_count", 0)
+
+    if cycle_count > 3:  # Ограничение на количество циклов
+        print("---MAX CYCLE COUNT REACHED: EXITING---")
+        return "exit"
+    else:
+        print(f"---RETRYING: Cycle count is {cycle_count}---")
+        return "retrieve"
+
+        
 def grade_generation_vs_documents(state, llm):
     """
     Determines whether the generation is grounded in the document.

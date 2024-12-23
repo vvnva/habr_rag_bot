@@ -169,14 +169,8 @@ def transform_query(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
-    cycle_count = state.get("cycle_count", 0)
+    state["cycle_count"] = state.get("cycle_count", 0) + 1
 
-    state["cycle_count"] = cycle_count + 1
-
-    if cycle_count > 3:  # Ограничение на количество циклов
-        print("---MAX CYCLE COUNT REACHED: EXITING---")
-        return "max retry exit" 
-    
     parser = PydanticOutputParser(pydantic_object=AnswerModel)
 
     # Create a prompt template with format instructions and the query
