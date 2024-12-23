@@ -3,10 +3,10 @@ from pprint import pprint
 from langgraph.graph import END, StateGraph
 
 from src.graph.graph_entities.nodes import (
-    retrieve, grade_documents, generate, transform_query, prepare_for_final_grade
+    retrieve, grade_documents, generate, transform_query, prepare_for_final_grade, handle_exit
 )
 from src.graph.graph_entities.edges import (
-    decide_to_generate, grade_generation_vs_documents, grade_generation_vs_question
+    decide_to_generate, grade_generation_vs_documents, grade_generation_vs_question, decide_to_retry
 )
 from src.graph.graph_entities.state import GraphState
 
@@ -33,6 +33,9 @@ def get_compiled_graph(llm, retriever):
     # EXIT NODE
     workflow.add_node("exit", handle_exit)
 
+    # PASSTHROUGH TO FINAL ANSWER
+    workflow.add_node("prepare_for_final_grade", prepare_for_final_grade)
+
 
     ### === Setting edges === ###
 
@@ -50,13 +53,13 @@ def get_compiled_graph(llm, retriever):
     )
     workflow.add_edge("transform_query", "retrieve")
 
-    # CHECK IF QUERY TRANSFORM EXCEEDS RETRIES
+    # CHECK RETRY LOGIC
     workflow.add_conditional_edges(
         "transform_query",
-        lambda state: "max retry exit" if state.get("cycle_count", 0) >= 4 else "retrieve",
+        decide_to_retry, 
         {
-            "max retry exit": "exit",
             "retrieve": "retrieve",
+            "exit": "exit",
         },
     )
 
