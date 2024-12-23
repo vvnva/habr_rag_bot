@@ -42,7 +42,7 @@ def decide_to_retry(state):
     Returns:
         str: Next node to call ('retrieve' or 'exit')
     """
-    cycle_count = state.get("cycle_count", 0)
+    cycle_count = state['keys']['cycle_count']
 
     if cycle_count > 3:  # Ограничение на количество циклов
         print("---MAX CYCLE COUNT REACHED: EXITING---")
