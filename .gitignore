@@ -536,3 +536,4 @@ src/llm_serving/__pycache__/__init__.cpython-312.pyc
 src/llm_serving/__pycache__/ollama_llm.cpython-312.pyc
 src/vector_db/__pycache__/__init__.cpython-312.pyc
 src/vector_db/__pycache__/qdrant.cpython-312.pyc
+ui/__pycache__/utils.cpython-312.pyc
