@@ -24,14 +24,14 @@ def get_compiled_graph(llm, retriever):
 
     # GENERATE ANSWER
     generate_with_llm = partial(generate, llm=llm)
-    workflow.add_node("generate", generate_with_llm)  # generatae
+    workflow.add_node("generate", generate_with_llm)  # generate
 
     # TRANSFORM QUERY
     transform_query_with_llm = partial(transform_query, llm=llm)
     workflow.add_node("transform_query", transform_query_with_llm)  # transform_query
 
-    # PASSTHROUGH TO FINAL ANSWER
-    workflow.add_node("prepare_for_final_grade", prepare_for_final_grade)
+    # EXIT NODE
+    workflow.add_node("exit", handle_exit)
 
 
     ### === Setting edges === ###
@@ -49,6 +49,16 @@ def get_compiled_graph(llm, retriever):
         },
     )
     workflow.add_edge("transform_query", "retrieve")
+
+    # CHECK IF QUERY TRANSFORM EXCEEDS RETRIES
+    workflow.add_conditional_edges(
+        "transform_query",
+        lambda state: "max retry exit" if state.get("cycle_count", 0) >= 4 else "retrieve",
+        {
+            "max retry exit": "exit",
+            "retrieve": "retrieve",
+        },
+    )
 
     # CHECK IF MODEL ANSWER IS SUPPORTED BY DOCUMENTS
     grade_generation_vs_documents_with_llm = partial(grade_generation_vs_documents, llm=llm)
@@ -75,7 +85,7 @@ def get_compiled_graph(llm, retriever):
     return workflow.compile()
 
 def run_graph(graph, query):
-    inputs = {"keys": {"question": query}}
+    inputs = {"keys": {"question": query}, "cycle_count": 0}
     for output in graph.stream(inputs):
         for key, value in output.items():
             # Node

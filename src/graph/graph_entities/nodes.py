@@ -169,6 +169,13 @@ def transform_query(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    cycle_count = state.get("cycle_count", 0)
+
+    state["cycle_count"] = cycle_count + 1
+
+    if cycle_count > 3:  # Ограничение на количество циклов
+        print("---MAX CYCLE COUNT REACHED: EXITING---")
+        return "max retry exit" 
     
     parser = PydanticOutputParser(pydantic_object=AnswerModel)
 
@@ -213,3 +220,11 @@ def prepare_for_final_grade(state):
     return {
         "keys": {"documents": documents, "question": question, "generation": generation}
     }
+
+
+def handle_exit(state):
+    """
+    Handles the situation where the retry limit is reached.
+    """
+    print("---EXITING DUE TO MAX CYCLES---")
+    return {"keys": {"generation": "Unable to generate a satisfactory answer after multiple attempts."}}
