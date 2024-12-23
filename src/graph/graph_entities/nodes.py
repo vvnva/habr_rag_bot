@@ -59,9 +59,10 @@ def retrieve(state, retriever):
     print("---RETRIEVE---")
     state_dict = state["keys"]
     question = state_dict["question"]
+    cycle_count = state_dict["cycle_count"]
     documents = retriever.get_relevant_documents(question)
     print(len(documents))
-    return {"keys": {"documents": documents, "question": question}}
+    return {"keys": {"documents": documents, "question": question, "cycle_count": cycle_count}}
 
 
 def grade_documents(state, llm):
@@ -79,6 +80,7 @@ def grade_documents(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
 
     # Prompt
     prompt = PromptTemplate(
@@ -113,7 +115,7 @@ def grade_documents(state, llm):
             print("---GRADE: DOCUMENT NOT RELEVANT---")
             continue
 
-    return {"keys": {"documents": filtered_docs, "question": question}}
+    return {"keys": {"documents": filtered_docs, "question": question, "cycle_count": cycle_count}}
 
 
 def generate(state, llm):
@@ -130,6 +132,7 @@ def generate(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
 
     # Prompt
     prompt = hub.pull("rlm/rag-prompt")
@@ -140,7 +143,7 @@ def generate(state, llm):
     # Run
     generation = rag_chain.invoke({"context": documents, "question": question})
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "question": question, "generation": generation, "cycle_count": cycle_count}
     }
 
 class AnswerModel(BaseModel):
@@ -169,7 +172,8 @@ def transform_query(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
-    
+    updated_cycle_count = state_dict["cycle_count"] + 1
+
     parser = PydanticOutputParser(pydantic_object=AnswerModel)
 
     # Create a prompt template with format instructions and the query
@@ -190,7 +194,7 @@ def transform_query(state, llm):
     chain = prompt | llm | parser
     better_question = chain.invoke({"question": question}).improved_question
 
-    return {"keys": {"documents": documents, "question": better_question}}
+    return {"keys": {"documents": documents, "question": better_question, "cycle_count": updated_cycle_count}}
 
 
 def prepare_for_final_grade(state):
@@ -209,7 +213,28 @@ def prepare_for_final_grade(state):
     question = state_dict["question"]
     documents = state_dict["documents"]
     generation = state_dict["generation"]
+    cycle_count = state_dict["cycle_count"]
 
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "question": question, "generation": generation, "cycle_count": cycle_count}
+    }
+
+
+def handle_exit(state):
+    """
+    Handles the situation where the retry limit is reached.
+    """
+
+    state_dict = state["keys"]
+    question = state_dict["question"]
+    documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
+
+    print("---EXITING DUE TO MAX CYCLES---")
+    return {
+        "keys": {
+            "documents": documents,
+            "question": question,
+            "generation": "Unable to generate a satisfactory answer after multiple attempts.",
+            "cycle_count": cycle_count}
     }
