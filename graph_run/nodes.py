@@ -61,20 +61,25 @@ def save_message_in_db(state, role):
     print("---SAVING IN DB---")
     state_dict = state["keys"]
     session_id = state_dict['session_id']
+    question = state_dict["question"]
     
     if role == 'human':
-        message = state_dict["question"]
-        save_message(session_id, "human", message)
-        return {"keys": {"session_id": session_id, "question": message}}
+        save_message(session_id, "human", question) 
+        return {"keys": {"session_id": session_id, "question": question}}
+    
     elif role == 'ai':
-        message = state_dict["generation"] 
-        save_message(session_id, "ai", message)
-        return 0
-    raise ValueError ('Значение роли указано неверно, проверь на соответствие одной из этих: human, ai')
+        documents = state_dict["documents"]
+        generation = state_dict["generation"]
+        save_message(session_id, "ai", generation)
+        
+    return {
+        "keys": {"documents": documents, "session_id": session_id, "question": question, "generation": generation}
+    }
+
     
     
 
-def invoke_getting_new_prompt(state, new_prompt_chain):
+def invoke_getting_new_prompt(state, chat_with_history):
     """
     New user prompt
 
@@ -90,7 +95,7 @@ def invoke_getting_new_prompt(state, new_prompt_chain):
     question = state_dict["question"]
     session_id = state_dict['session_id']
     
-    result = new_prompt_chain.invoke(
+    result = chat_with_history.invoke(
         {"input": question},
         config={"configurable": {"session_id": session_id}}
     )
