@@ -51,7 +51,6 @@ def get_compiled_graph(llm, retriever):
             "generate": "generate",
         },
     )
-    workflow.add_edge("transform_query", "retrieve")
 
     # CHECK RETRY LOGIC
     workflow.add_conditional_edges(
@@ -62,6 +61,7 @@ def get_compiled_graph(llm, retriever):
             "exit": "exit",
         },
     )
+    workflow.add_edge("exit", END)
 
     # CHECK IF MODEL ANSWER IS SUPPORTED BY DOCUMENTS
     grade_generation_vs_documents_with_llm = partial(grade_generation_vs_documents, llm=llm)
@@ -88,7 +88,7 @@ def get_compiled_graph(llm, retriever):
     return workflow.compile()
 
 def run_graph(graph, query):
-    inputs = {"keys": {"question": query}, "cycle_count": 0}
+    inputs = {"keys": {"question": query, "cycle_count": 0}}
     for output in graph.stream(inputs):
         for key, value in output.items():
             # Node

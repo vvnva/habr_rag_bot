@@ -12,5 +12,4 @@ class GraphState(TypedDict):
     """
 
     keys: Dict[str, any]
-    cycle_count: int
     
