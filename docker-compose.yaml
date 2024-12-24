@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  rag-service:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.rag
+    container_name: rag-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - streamlit
+    volumes:
+      - ./src:/app/src
+      - ../data/langchain_qdrant_10percent:/app/data/langchain_qdrant_10percent
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - DATA_PATH=/app/data/langchain_qdrant_10percent
+
+  streamlit:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./ui:/app/ui
+    environment:
+      - RAG_API_URL=http://rag-service:8000/rag-answer
