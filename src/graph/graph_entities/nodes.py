@@ -1,18 +1,9 @@
 import json
-import operator
-from typing import Annotated, Sequence, TypedDict
 
 from langchain import hub
 from langchain.prompts import PromptTemplate
-from langchain_community.vectorstores import Chroma
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import BaseMessage, FunctionMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser, PydanticOutputParser
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables import RunnablePassthrough
-from langchain_community.chat_models import ChatOllama
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
 _PYDANTIC_FORMAT_INSTRUCTIONS = """The output should be formatted as a JSON instance that conforms to the JSON schema below.
@@ -64,37 +55,6 @@ def invoke_getting_new_prompt(state, llm):
     question = state_dict["question"]
     history = state_dict["history"]
     cycle_count = state_dict["cycle_count"]
-    
-#     prompt_text = """Учитывая историю чатов и последний вопрос пользователя, который может ссылаться на контекст в истории чата, \
-#              сформулируй отдельный вопрос, который может быть понят без истории чата. НЕ отвечай на вопрос, только переформулируй его, если нужно. \
-#              Переформулировка нужна в случае, если вопрос не понятен без истории чата, \
-#              в случаях если история пуста или вопрос самодостаточен - его НЕ НАДО переформулировать, просто верни его же в ответе. \
-#              Ответ выводи в виде JSON с единственным ключом 'answer', где будет находиться новый или не измененный вопрос. """
-    
-#     prompt = ChatPromptTemplate.from_messages(
-#     [
-#         ("system", prompt_text),
-#         MessagesPlaceholder("chat_history"),
-#         ("human", "{input}"),
-#     ]
-# ) 
-    
-#     chain = prompt | llm | JsonOutputParser()
-    
-#     new_prompt_chain = RunnableWithMessageHistory(
-#     chain,
-#     get_session_history,
-#     input_messages_key="input",
-#     history_messages_key="chat_history",
-#     output_messages_key="answer",
-#     )
-
-    
-#     result = new_prompt_chain.invoke(
-#         {"input": question},
-#         config={"configurable": {"history": history}}
-#     )
-#     print("Invoke Result:", result)  # Для отладки
 
     prompt = PromptTemplate(
             template="""Considering the chat history and the user's latest question, which may refer to the context in the chat history, rephrase the question as a standalone query that can be understood without the chat history. DO NOT ANSWER THE QUESTION; only rephrase it if absolutely necessary.  

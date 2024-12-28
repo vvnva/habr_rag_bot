@@ -1,8 +1,8 @@
 import streamlit as st
 import time
 
-from utils import fetch_response_from_api, clear_chat_history, remove_duplicate_links, reset_session
-
+from utils import fetch_response_from_api, handle_clear_chat, remove_duplicate_links, reset_session
+from db.save_and_load_history import save_message
 
 def main():
     st.set_page_config(page_title="💬 Habr Chat Bot")
@@ -13,7 +13,7 @@ def main():
             """Чатбот на основе RAG по Habr статьям.
             """
         )
-        st.button('Clear Chat History', on_click=clear_chat_history)
+        st.button('Clear Chat History', on_click=handle_clear_chat)
         if st.session_state['guest_mode']:
             st.subheader("Guest Mode")
             
@@ -39,12 +39,19 @@ def main():
         st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
 
     for msg in st.session_state.messages:
-        role = msg.get("role", "assistant") 
+        role = msg.get("role", "") 
         content = msg.get("content", "")
+        links = msg.get("links", [])
         with st.chat_message(role):
             st.write(content)
+            if links:
+                st.markdown("**Related Links:**", unsafe_allow_html=True)
+                for link in links:
+                    st.link_button(link["title"], link["url"])
 
     if prompt := st.chat_input():
+        if not st.session_state['guest_mode']:
+            save_message(login_name=st.session_state['login_name'],role="user",content=prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.write(prompt)
@@ -68,8 +75,10 @@ def main():
 
                 for link in links:
                     st.link_button(link["title"], link["url"])
-
-        message = {"role": "assistant", "content": full_response}
+                    
+        if not st.session_state['guest_mode']:
+            save_message(login_name=st.session_state['login_name'],role="assistant",content=full_response, links=links)
+        message = {"role": "assistant", "content": full_response, "links": links}
         st.session_state.messages.append(message)
         
     st.session_state
