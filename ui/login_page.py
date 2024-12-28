@@ -1,6 +1,7 @@
+import time
 import streamlit as st
 from utils import authenticate_user
-import time
+from db.save_and_load_history import load_session_history
 
 # Pages
 def login_page(guest_mode=False):
@@ -23,8 +24,10 @@ def login_page(guest_mode=False):
                 if not (login_name and password):
                     st.error("Please provide login name and password")
                 elif authenticate_user(login_name, password):
+                    st.session_state['login_name'] = login_name
                     st.session_state['authenticated'] = True
                     st.session_state['page'] = 'app'
+                    st.session_state['messages'] = load_session_history(login_name)
                     st.rerun()
                 else:
                     st.error("Invalid login credentials")

@@ -2,11 +2,13 @@ import yaml
 import streamlit as st
 import requests
 import psycopg2
-from psycopg2 import sql
-from dotenv import load_dotenv
 import os
 import bcrypt
+
+from psycopg2 import sql
+from dotenv import load_dotenv
 from typing import List, Dict
+from db.save_and_load_history import delete_user_messages
 
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
@@ -17,7 +19,11 @@ def clear_chat_history():
     """Очищает историю чата в Streamlit session state."""
     st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
 
-
+def handle_clear_chat():
+    if not st.session_state['guest_mode']:
+        delete_user_messages(st.session_state['login_name'])  
+    clear_chat_history()  
+    
 def fetch_response_from_api(user_input: str, chat_history: List[Dict]) -> Dict:
     """Отправляет запрос в API и возвращает ответ и ссылки."""
     try:
@@ -43,7 +49,6 @@ def fetch_response_from_api(user_input: str, chat_history: List[Dict]) -> Dict:
     except requests.RequestException as e:
         st.error(f"Error contacting the API: {e}")
         return {"answer": "Sorry, something went wrong!", "links": []}
-
 
 def remove_duplicate_links(links: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """Удаляет дубликаты ссылок по заголовкам."""
@@ -71,7 +76,6 @@ def init_session():
     if 'extra_input_params' not in st.session_state:
         st.session_state['extra_input_params'] = {}
 
-
 def reset_session():
     st.session_state['authenticated'] = False
     st.session_state['page'] = 'login'
@@ -79,11 +83,11 @@ def reset_session():
     st.session_state['verifying'] = False
     st.session_state['login_name'] = ""
     st.session_state['password'] = ""
+    st.session_state['messages'] = [{"role": "assistant", "content": "How may I assist you today?"}]
     
     for input_param in st.session_state['extra_input_params'].keys():
         if input_param not in st.session_state:
             st.session_state[input_param] = None
-            
             
 # ---------------------- DB ----------------------
 load_dotenv()
@@ -108,7 +112,6 @@ def verify_duplicate_user(login_name):
     
     return count > 0
 
-
 def authenticate_user(login_name, password):
     conn = psycopg2.connect(**db_params)
     cur = conn.cursor()
@@ -128,8 +131,6 @@ def authenticate_user(login_name, password):
 
     # Compare the provided password with the stored hashed password
     return bcrypt.checkpw(password.encode(), stored_hashed_password.encode())
-
-    
 
 def save_user(login_name, password, extra_input_params):
     conn = psycopg2.connect(**db_params)
@@ -162,7 +163,6 @@ def save_user(login_name, password, extra_input_params):
     conn.commit()
     cur.close()
     conn.close()
-    
 
 def get_users():
     conn = psycopg2.connect(**db_params)

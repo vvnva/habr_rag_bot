@@ -1,6 +1,7 @@
-import streamlit as st
-from utils import save_user, verify_duplicate_user
 import time
+import streamlit as st
+
+from utils import save_user, verify_duplicate_user
 
 def input_field(input_param, type):
     """Render an input field based on the type and store the value in session state."""
@@ -12,14 +13,12 @@ def input_field(input_param, type):
 def signup_page(extra_input_params=False, confirmPass=False):
     """Render the signup page with optional extra input parameters and password confirmation."""
     if st.session_state['verifying']:
-        # Check if the user already exists
         if verify_duplicate_user(st.session_state['login_name']):
             st.error("User already exists")
             time.sleep(1)
             st.session_state['verifying'] = False
             st.rerun()
         else:
-            # Save the user only if it doesn't exist
             save_user(st.session_state['login_name'], st.session_state['password'], st.session_state.get('extra_input_params', {}))
             st.success("Registration successful! Redirecting to login...")
             time.sleep(1)
@@ -33,22 +32,17 @@ def signup_page(extra_input_params=False, confirmPass=False):
         with st.empty().container(border=True):
             st.title("Sign Up Page")
             
-            # Email input with validation
             st.session_state['login_name'] = st.text_input("Login")
             
-            # Password input
             st.session_state['password'] = st.text_input("Password", type='password')
             
-            # Confirm password if required
             if confirmPass:
                 confirm_password = st.text_input("Confirm Password", type='password')
             
-            # Extra input fields if any
             if extra_input_params:
                 for input_param, type in st.session_state['extra_input_params'].items():
                     input_field(input_param, type)
             
-            # Validate all required fields before proceeding
             if st.session_state['login_name'] and st.session_state['password'] and \
                (not confirmPass or (confirmPass and st.session_state['password'] == confirm_password)):
                 
