@@ -1,3 +1,4 @@
+.env
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
 # Created by https://www.toptal.com/developers/gitignore/api/windows,visualstudiocode,jetbrains,jetbrains+all,jetbrains+iml,pycharm,pycharm+all,pycharm+iml,venv,virtualenv,zsh
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,visualstudiocode,jetbrains,jetbrains+all,jetbrains+iml,pycharm,pycharm+all,pycharm+iml,venv,virtualenv,zsh
@@ -16,7 +17,8 @@
 # VENVS:
 .habr_rag_env/
 
-
+# QDRANT
+qdrant_data/
 
 # AWS User-specific
 .idea/**/aws.xml
@@ -520,3 +522,22 @@ zsdoc/data
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 
+src/__pycache__/edges.cpython-312.pyc
+src/__pycache__/nodes.cpython-312.pyc
+src/__pycache__/state.cpython-312.pyc
+src/__pycache__/__init__.cpython-312.pyc
+src/__pycache__/app.cpython-312.pyc
+src/graph/__pycache__/__init__.cpython-312.pyc
+src/graph/__pycache__/graph_funcs.cpython-312.pyc
+src/graph/graph_entities/__pycache__/__init__.cpython-312.pyc
+src/graph/graph_entities/__pycache__/edges.cpython-312.pyc
+src/graph/graph_entities/__pycache__/nodes.cpython-312.pyc
+src/graph/graph_entities/__pycache__/state.cpython-312.pyc
+src/llm_serving/__pycache__/__init__.cpython-312.pyc
+src/llm_serving/__pycache__/ollama_llm.cpython-312.pyc
+src/vector_db/__pycache__/__init__.cpython-312.pyc
+src/vector_db/__pycache__/qdrant.cpython-312.pyc
+ui/__pycache__/utils.cpython-312.pyc
+tests/__pycache__/__init__.cpython-312.pyc
+tests/__pycache__/utils.cpython-312.pyc
+ui/__pycache__/tmp.cpython-312.pyc
