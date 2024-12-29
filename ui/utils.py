@@ -1,3 +1,4 @@
+import os
 import yaml
 import streamlit as st
 import requests
@@ -14,6 +15,9 @@ with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 API_URL = config['streamlit']['api_answer_link']
+rag_api_url_env = os.getenv("RAG_API_URL")
+if rag_api_url_env:
+    API_URL = rag_api_url_env
 
 def clear_chat_history():
     """Очищает историю чата в Streamlit session state."""
