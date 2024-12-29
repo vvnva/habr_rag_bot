@@ -3,17 +3,20 @@ from pprint import pprint
 from langgraph.graph import END, StateGraph
 
 from src.graph.graph_entities.nodes import (
-    retrieve, grade_documents, generate, transform_query, prepare_for_final_grade
+    invoke_getting_new_prompt, retrieve, grade_documents, generate, transform_query, prepare_for_final_grade, handle_exit
 )
 from src.graph.graph_entities.edges import (
-    decide_to_generate, grade_generation_vs_documents, grade_generation_vs_question
+    decide_to_generate, grade_generation_vs_documents, grade_generation_vs_question, decide_to_retry
 )
 from src.graph.graph_entities.state import GraphState
 
 
 def get_compiled_graph(llm, retriever):
     workflow = StateGraph(GraphState)
-
+    # UPDATED PROMPT
+    new_prompt = partial(invoke_getting_new_prompt,llm=llm)
+    workflow.add_node("updated prompt", new_prompt)
+    
     # RETRIEVE
     retrieve_with_retriever = partial(retrieve, retriever=retriever)
     workflow.add_node("retrieve", retrieve_with_retriever)
@@ -24,11 +27,14 @@ def get_compiled_graph(llm, retriever):
 
     # GENERATE ANSWER
     generate_with_llm = partial(generate, llm=llm)
-    workflow.add_node("generate", generate_with_llm)  # generatae
+    workflow.add_node("generate", generate_with_llm)  # generate
 
     # TRANSFORM QUERY
     transform_query_with_llm = partial(transform_query, llm=llm)
     workflow.add_node("transform_query", transform_query_with_llm)  # transform_query
+
+    # EXIT NODE
+    workflow.add_node("exit", handle_exit)
 
     # PASSTHROUGH TO FINAL ANSWER
     workflow.add_node("prepare_for_final_grade", prepare_for_final_grade)
@@ -36,7 +42,8 @@ def get_compiled_graph(llm, retriever):
 
     ### === Setting edges === ###
 
-    workflow.set_entry_point("retrieve")
+    workflow.set_entry_point("updated prompt")
+    workflow.add_edge("updated prompt", "retrieve")
     workflow.add_edge("retrieve", "grade_documents")
 
     # CHECK DOCUMENT RELEVANCE
@@ -48,7 +55,17 @@ def get_compiled_graph(llm, retriever):
             "generate": "generate",
         },
     )
-    workflow.add_edge("transform_query", "retrieve")
+
+    # CHECK RETRY LOGIC
+    workflow.add_conditional_edges(
+        "transform_query",
+        decide_to_retry, 
+        {
+            "retrieve": "retrieve",
+            "exit": "exit",
+        },
+    )
+    workflow.add_edge("exit", END)
 
     # CHECK IF MODEL ANSWER IS SUPPORTED BY DOCUMENTS
     grade_generation_vs_documents_with_llm = partial(grade_generation_vs_documents, llm=llm)
@@ -74,8 +91,8 @@ def get_compiled_graph(llm, retriever):
 
     return workflow.compile()
 
-def run_graph(graph, query):
-    inputs = {"keys": {"question": query}}
+def run_graph(graph, query, history):
+    inputs = {"keys": {"question": query, "history": history, "cycle_count": 0}}
     for output in graph.stream(inputs):
         for key, value in output.items():
             # Node

@@ -1,15 +1,9 @@
 import json
-import operator
-from typing import Annotated, Sequence, TypedDict
 
 from langchain import hub
 from langchain.prompts import PromptTemplate
-from langchain_community.vectorstores import Chroma
-from langchain_core.messages import BaseMessage, FunctionMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser, PydanticOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables import RunnablePassthrough
-from langchain_community.chat_models import ChatOllama
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
 _PYDANTIC_FORMAT_INSTRUCTIONS = """The output should be formatted as a JSON instance that conforms to the JSON schema below.
@@ -45,6 +39,57 @@ def get_format_instructions(parser) -> str:
 
 ### Nodes ###
 
+def invoke_getting_new_prompt(state, llm):
+    """
+    New user prompt
+
+    Args:
+        state (dict): The current graph state
+        
+    Returns:
+        state (dict): Updated question key state, that contains new prompt
+    """
+    print("---UPDATING PROMPT---")
+        
+    state_dict = state["keys"]
+    question = state_dict["question"]
+    history = state_dict["history"]
+    cycle_count = state_dict["cycle_count"]
+
+    prompt = PromptTemplate(
+            template="""Considering the chat history and the user's latest question, which may refer to the context in the chat history, rephrase the question as a standalone query that can be understood without the chat history. DO NOT ANSWER THE QUESTION; only rephrase it if absolutely necessary.  
+  
+            Rephrasing is required only in the following cases:  
+            1. If the question contains explicit references to previous messages (e.g., "А что насчёт этого?" or "Как я уже говорил").  
+            2. If the question is incomplete or unclear without the context of the chat history.  
+
+            If the question is clear and self-contained, return it unchanged. Do not add extra details or infer the user's intent.  
+
+            Provide the response in JSON format with a single key 'answer', containing the new or unchanged question.  
+
+            Examples:  
+            - Question: "Расскажи мне про Рокетбанк" → Return unchanged: "answer": "Расскажи мне про Рокетбанк" 
+            - Question: "Что насчёт этого?" (with context: "Рокетбанк классный банк" или другого упоминания) → Rephrase: "answer": "Что насчет Рокетбанка?" 
+            
+            User's latest question: {question}  
+            Chat history: {history}  """,
+            input_variables=["question","history"],
+            )
+    
+    chain = prompt | llm | JsonOutputParser()
+    
+    result = chain.invoke(
+        {
+            "question": question,
+            "history": history,
+        }
+    )
+    
+    print("Invoke Result:", result)
+    
+    new_prompt = result["answer"]
+
+    return {"keys": {"question": new_prompt, "cycle_count": cycle_count}}
 
 def retrieve(state, retriever):
     """
@@ -59,9 +104,10 @@ def retrieve(state, retriever):
     print("---RETRIEVE---")
     state_dict = state["keys"]
     question = state_dict["question"]
+    cycle_count = state_dict["cycle_count"]
     documents = retriever.get_relevant_documents(question)
     print(len(documents))
-    return {"keys": {"documents": documents, "question": question}}
+    return {"keys": {"documents": documents, "question": question, "cycle_count": cycle_count}}
 
 
 def grade_documents(state, llm):
@@ -79,6 +125,7 @@ def grade_documents(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
 
     # Prompt
     prompt = PromptTemplate(
@@ -113,7 +160,7 @@ def grade_documents(state, llm):
             print("---GRADE: DOCUMENT NOT RELEVANT---")
             continue
 
-    return {"keys": {"documents": filtered_docs, "question": question}}
+    return {"keys": {"documents": filtered_docs, "question": question, "cycle_count": cycle_count}}
 
 
 def generate(state, llm):
@@ -130,6 +177,7 @@ def generate(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
 
     # Prompt
     prompt = hub.pull("rlm/rag-prompt")
@@ -140,7 +188,7 @@ def generate(state, llm):
     # Run
     generation = rag_chain.invoke({"context": documents, "question": question})
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "question": question, "generation": generation, "cycle_count": cycle_count}
     }
 
 class AnswerModel(BaseModel):
@@ -169,7 +217,8 @@ def transform_query(state, llm):
     state_dict = state["keys"]
     question = state_dict["question"]
     documents = state_dict["documents"]
-    
+    updated_cycle_count = state_dict["cycle_count"] + 1
+
     parser = PydanticOutputParser(pydantic_object=AnswerModel)
 
     # Create a prompt template with format instructions and the query
@@ -190,7 +239,7 @@ def transform_query(state, llm):
     chain = prompt | llm | parser
     better_question = chain.invoke({"question": question}).improved_question
 
-    return {"keys": {"documents": documents, "question": better_question}}
+    return {"keys": {"documents": documents, "question": better_question, "cycle_count": updated_cycle_count}}
 
 
 def prepare_for_final_grade(state):
@@ -209,7 +258,28 @@ def prepare_for_final_grade(state):
     question = state_dict["question"]
     documents = state_dict["documents"]
     generation = state_dict["generation"]
+    cycle_count = state_dict["cycle_count"]
 
     return {
-        "keys": {"documents": documents, "question": question, "generation": generation}
+        "keys": {"documents": documents, "question": question, "generation": generation, "cycle_count": cycle_count}
+    }
+
+
+def handle_exit(state):
+    """
+    Handles the situation where the retry limit is reached.
+    """
+
+    state_dict = state["keys"]
+    question = state_dict["question"]
+    documents = state_dict["documents"]
+    cycle_count = state_dict["cycle_count"]
+
+    print("---EXITING DUE TO MAX CYCLES---")
+    return {
+        "keys": {
+            "documents": documents,
+            "question": question,
+            "generation": "Unable to generate a satisfactory answer after multiple attempts.",
+            "cycle_count": cycle_count}
     }
