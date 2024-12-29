@@ -16,7 +16,14 @@ graph = get_compiled_graph(llm=llm, retriever=retriever)
 
 class UserQuery(BaseModel):
     query: str
-
+    
+class RecordFormat(BaseModel):
+    role : str | None
+    content: str | None
+    
+class ChatHistory(BaseModel):
+    full_history: List[RecordFormat]
+       
 class ResponseItem(BaseModel):
     title: str
     url: str
@@ -26,11 +33,14 @@ class UserResponse(BaseModel):
     links: List[ResponseItem]
 
 @app.post("/rag-answer", response_model=UserResponse)
-async def rag_answer(user_query: UserQuery):
+async def rag_answer(user_query: UserQuery, chat_history: ChatHistory):
     if not user_query.query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
+    
+    if not chat_history.full_history:
+        chat_history.full_history = [{}]
 
-    processed_answer, docs = run_graph(graph=graph, query=user_query.query)
+    processed_answer, docs = run_graph(graph=graph, query=user_query.query, history=chat_history.full_history)
 
     links = [
         ResponseItem(title=doc['title'], url=doc['link']) for doc in docs

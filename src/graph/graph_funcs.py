@@ -3,7 +3,7 @@ from pprint import pprint
 from langgraph.graph import END, StateGraph
 
 from src.graph.graph_entities.nodes import (
-    retrieve, grade_documents, generate, transform_query, prepare_for_final_grade, handle_exit
+    invoke_getting_new_prompt, retrieve, grade_documents, generate, transform_query, prepare_for_final_grade, handle_exit
 )
 from src.graph.graph_entities.edges import (
     decide_to_generate, grade_generation_vs_documents, grade_generation_vs_question, decide_to_retry
@@ -13,7 +13,10 @@ from src.graph.graph_entities.state import GraphState
 
 def get_compiled_graph(llm, retriever):
     workflow = StateGraph(GraphState)
-
+    # UPDATED PROMPT
+    new_prompt = partial(invoke_getting_new_prompt,llm=llm)
+    workflow.add_node("updated prompt", new_prompt)
+    
     # RETRIEVE
     retrieve_with_retriever = partial(retrieve, retriever=retriever)
     workflow.add_node("retrieve", retrieve_with_retriever)
@@ -39,7 +42,8 @@ def get_compiled_graph(llm, retriever):
 
     ### === Setting edges === ###
 
-    workflow.set_entry_point("retrieve")
+    workflow.set_entry_point("updated prompt")
+    workflow.add_edge("updated prompt", "retrieve")
     workflow.add_edge("retrieve", "grade_documents")
 
     # CHECK DOCUMENT RELEVANCE
@@ -87,8 +91,8 @@ def get_compiled_graph(llm, retriever):
 
     return workflow.compile()
 
-def run_graph(graph, query):
-    inputs = {"keys": {"question": query, "cycle_count": 0}}
+def run_graph(graph, query, history):
+    inputs = {"keys": {"question": query, "history": history, "cycle_count": 0}}
     for output in graph.stream(inputs):
         for key, value in output.items():
             # Node

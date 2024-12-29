@@ -1,15 +1,9 @@
 import json
-import operator
-from typing import Annotated, Sequence, TypedDict
 
 from langchain import hub
 from langchain.prompts import PromptTemplate
-from langchain_community.vectorstores import Chroma
-from langchain_core.messages import BaseMessage, FunctionMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser, PydanticOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables import RunnablePassthrough
-from langchain_community.chat_models import ChatOllama
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
 _PYDANTIC_FORMAT_INSTRUCTIONS = """The output should be formatted as a JSON instance that conforms to the JSON schema below.
@@ -45,6 +39,57 @@ def get_format_instructions(parser) -> str:
 
 ### Nodes ###
 
+def invoke_getting_new_prompt(state, llm):
+    """
+    New user prompt
+
+    Args:
+        state (dict): The current graph state
+        
+    Returns:
+        state (dict): Updated question key state, that contains new prompt
+    """
+    print("---UPDATING PROMPT---")
+        
+    state_dict = state["keys"]
+    question = state_dict["question"]
+    history = state_dict["history"]
+    cycle_count = state_dict["cycle_count"]
+
+    prompt = PromptTemplate(
+            template="""Considering the chat history and the user's latest question, which may refer to the context in the chat history, rephrase the question as a standalone query that can be understood without the chat history. DO NOT ANSWER THE QUESTION; only rephrase it if absolutely necessary.  
+  
+            Rephrasing is required only in the following cases:  
+            1. If the question contains explicit references to previous messages (e.g., "А что насчёт этого?" or "Как я уже говорил").  
+            2. If the question is incomplete or unclear without the context of the chat history.  
+
+            If the question is clear and self-contained, return it unchanged. Do not add extra details or infer the user's intent.  
+
+            Provide the response in JSON format with a single key 'answer', containing the new or unchanged question.  
+
+            Examples:  
+            - Question: "Расскажи мне про Рокетбанк" → Return unchanged: "answer": "Расскажи мне про Рокетбанк" 
+            - Question: "Что насчёт этого?" (with context: "Рокетбанк классный банк" или другого упоминания) → Rephrase: "answer": "Что насчет Рокетбанка?" 
+            
+            User's latest question: {question}  
+            Chat history: {history}  """,
+            input_variables=["question","history"],
+            )
+    
+    chain = prompt | llm | JsonOutputParser()
+    
+    result = chain.invoke(
+        {
+            "question": question,
+            "history": history,
+        }
+    )
+    
+    print("Invoke Result:", result)
+    
+    new_prompt = result["answer"]
+
+    return {"keys": {"question": new_prompt, "cycle_count": cycle_count}}
 
 def retrieve(state, retriever):
     """
