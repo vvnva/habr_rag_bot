@@ -1,66 +1,62 @@
 import pandas as pd
+import numpy as np
+from typing import List
+from ast import literal_eval
 import matplotlib.pyplot as plt
 
-from typing import List
+
+def _pk(r, k):
+    return sum(r[:k]) >= 1
 
 
-def pk(relevances: List[int], k: int) -> float:
-    """Calculate Precision at k."""
-    # if k > len(relevances):
-    #     raise ValueError(f"k={k} exceeds the number of relevance scores provided.")
-    return sum(relevances[:k]) / k
+def pk(documents_relevancy, k) -> float:
+    return np.mean([_pk(r, k=k) for r in documents_relevancy])
 
 
-def mean_average_precision(relevances: List[int]) -> float:
-    """Calculate Mean Average Precision."""
-    ap_values = [pk(relevances, i) for i in range(1, len(relevances) + 1) if relevances[i - 1] == 1]
-    return sum(ap_values) / sum(relevances) if sum(relevances) > 0 else 0
+def precision_at_k(r, k) -> float:
+    assert k >= 1
+    r = np.asarray(r[:k]) != 0
+    if len(r) < k:
+        return 0.0
+    return np.mean(r)
 
 
-def process_queries(df: pd.DataFrame, retriever):
-    """Process queries and calculate relevance and context."""
-    relevances, contexts = [], []
-
-    for question, links in zip(df["question"], df["gold_urls"]):
-        query = f"{question}"
-        retrieved_docs = retriever.get_relevant_documents(query)
-
-        retrieved_links = [doc.metadata['link'] for doc in retrieved_docs]
-        contexts.append('\n'.join(retrieved_links))
-
-        relevance = [1 if link in retrieved_links else 0 for link in links]
-        relevances.append(relevance)
-
-    return relevances
+def average_precision(r):
+    r = np.asarray(r) != 0
+    out = [precision_at_k(r, k + 1) for k in range(len(r)) if r[k]]
+    if not out:
+        return 0.0
+    return np.mean(out)
 
 
-def show_statistics(df: pd.DataFrame, retriever) -> None:
-    """Process queries, calculate relevance, and display statistics."""
-    relevances = process_queries(df, retriever)
+def mean_average_precision(documents_relevancy) -> float:
+    return np.mean([average_precision(r) for r in documents_relevancy])
 
-    all_pk_values = {}
-    map_values = []
 
-    for relevance in relevances:
-        pk_values = {f"pk@{k}": pk(relevance, k=k) for k in [1, 2, 3, 4, 5, 10] if k <= len(relevance)}
-        map_values.append(mean_average_precision(relevance))
+def compute_metrics_from_df(df: pd.DataFrame):
+    documents_relevancy = []
+    grouped = df.groupby("question")
 
-        for key, value in pk_values.items():
-            all_pk_values.setdefault(key, []).append(value)
+    for _, group in grouped:
+        rel = group["is_link_relevant"].apply(
+            lambda x: literal_eval(str(x)) if isinstance(x, (str, int, float)) else x
+        ).tolist()
+        rel_flattened = [item for sublist in rel for item in (sublist if isinstance(sublist, list) else [sublist])]
+        documents_relevancy.append(rel_flattened)
 
-    avg_pk_values = {key: sum(values) / len(values) for key, values in all_pk_values.items()}
-    avg_map_value = sum(map_values) / len(map_values)
+    precision_values = {f"p@{k}": pk(documents_relevancy, k) for k in [1, 2, 3, 4, 5, 10]}
+    map_value = mean_average_precision(documents_relevancy)
 
-    print("Statistics:")
-    print(f"Precision at k: {avg_pk_values}")
-    print(f"Mean Average Precision: {avg_map_value}")
+    print("Precision at k:")
+    for k, v in precision_values.items():
+        print(f"{k}: {v:.4f}")
 
-    plt.figure(figsize=(10, 8))
-    plt.bar(avg_pk_values.keys(), avg_pk_values.values(), color='b')
-    plt.title("Average Precision at k")
+    print(f"Mean Average Precision (MAP): {map_value:.4f}")
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(precision_values.keys(), precision_values.values(), color='b')
+    plt.title("Precision at k")
     plt.ylabel("Precision")
     plt.xlabel("k")
-    plt.savefig("stat.png", dpi=300)
+    plt.savefig('Precision_at_k.png', dpi=300)
     plt.show()
-
-
