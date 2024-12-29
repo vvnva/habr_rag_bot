@@ -92,7 +92,7 @@ questions = [
 
 for question in questions:
     try:
-        processed_answer, docs = run_graph(graph=graph, query=question, history = [{}])
+        processed_answer, docs = run_graph(graph=graph, query=question, history = [])
         links = [{"title": doc['title'], "url": doc['link']} for doc in docs]
 
         data["question"].append(question)

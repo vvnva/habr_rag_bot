@@ -41,6 +41,18 @@
 ![Граф](https://drive.google.com/uc?export=view&id=125f5x8xe63qahpkOmFqHY7gQwGYG9TQe)
 ## Метрики
 ### Retrieved docs vs input
+| **k**  | **Precision (p@k)** |
+|--------|----------------------|
+| 1      | 0.6133              |
+| 2      | 0.7067              |
+| 3      | 0.8667              |
+| 4      | 0.9200              |
+| 5      | 0.9467              |
+| 10     | 0.9733              |
+
+**MAP**: 0.6429
+
+![Precision at k](https://drive.google.com/uc?export=view&id=1-9GbsSSpT1JRNmmPsid-CL3Q7N4tv_S-)
 
 ### Generation vs input
 
