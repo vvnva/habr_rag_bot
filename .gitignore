@@ -525,3 +525,4 @@ zsdoc/data
 /**/__pycache__/
 /postgres_data/**
 data/**
+.vscode/
