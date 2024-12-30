@@ -74,7 +74,17 @@
 
 ## Запуск
 
-## Примеры интерфейса 
+Для запуска используйте следующую команду:
+
+```bash
+docker compose up
+```
+
+## Примеры интерфейса
+
+<div align="center">
+    <img src="https://drive.google.com/uc?export=view&id=18V1LZQL0XtASzvY85sebZJKaVnXD4Jbp" alt="Пример интерфейса" width="75%">
+</div>
 
 ## Состав команды
 - [Набиуллин Иван](https://t.me/xenopupel)
