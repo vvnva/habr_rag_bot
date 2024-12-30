@@ -37,13 +37,18 @@
 ## Архитектура решения
 ### Rag Pipeline
 <div align="center">
-    <img src="https://drive.google.com/uc?export=view&id=1S_GuFPctPRfCkeFDkhSSw5XKMuWIlfk0" alt="Граф">
+    <img src="https://drive.google.com/uc?export=view&id=1S_GuFPctPRfCkeFDkhSSw5XKMuWIlfk0" alt="Граф" width="60%">
 </div>
 
 Дополнительно также реализована память в рамках диалога с конкретным пользователем, авторизация в стримлите и сохранение диалогов для пользователя по логину/паролю.
 ## Валидация
 Для расчета метрик было сгенерировано 75 вопросов, ответы на которые наиболее вероятно могут быть на Хабре.
 ### Retrieved docs vs input
+Для оценки ретрива использовались следующие метрики:
+
+- **Precision at \(k\)**: доля запросов, в которых хотя бы один релевантный документ присутствует в топ-\(k\) результатов. Значения метрики вычисляются для \(k = 1, 2, 3, 4, 5, 10\).
+- Итоговая оценка качества вычисляется как среднее значение Precision at \(k\) по всем запросам.
+
 <div align="center">
 
 | **k**  | **Precision (p@k)** |
@@ -60,20 +65,16 @@
 </div>
 
 <div align="center">
-    <img src="https://drive.google.com/uc?export=view&id=1-9GbsSSpT1JRNmmPsid-CL3Q7N4tv_S-" alt="Precision at k">
+    <img src="https://drive.google.com/uc?export=view&id=1-9GbsSSpT1JRNmmPsid-CL3Q7N4tv_S-" alt="Precision at k" width="70%>
 </div>
 
 ### Generation vs input
-**Accuracy**: 0.753
+Для оценки end2end качества системы использовалась разметка:
+- 0 — неверный ответ
+- 1 — частично корректный ответ
+- 2 — полностью корректный ответ
 
-## Структура репозитория
-```
- ├── data/ # Данные проекта 
- ├── db/ # Структура и файлы базы данных 
- ├── src/ # Исходный код 
- ├── tests/ # Метрики 
- └── ui/ # Интерфейс пользователя 
- ```
+Далее считалось среднее полученных меток: **1.506**
 
 ## Запуск
 
