@@ -2,7 +2,7 @@ import streamlit as st
 import time
 
 from utils import fetch_response_from_api, handle_clear_chat, remove_duplicate_links, reset_session
-from db.save_and_load_history import save_message
+from save_and_load_history import save_message
 
 def main():
     st.set_page_config(page_title="💬 Habr Chat Bot")

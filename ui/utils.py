@@ -9,7 +9,7 @@ import bcrypt
 from psycopg2 import sql
 from dotenv import load_dotenv
 from typing import List, Dict
-from db.save_and_load_history import delete_user_messages
+from save_and_load_history import delete_user_messages
 
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
