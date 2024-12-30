@@ -65,7 +65,7 @@
 </div>
 
 <div align="center">
-    <img src="https://drive.google.com/uc?export=view&id=1-9GbsSSpT1JRNmmPsid-CL3Q7N4tv_S-" alt="Precision at k" width="70%>
+    <img src="https://drive.google.com/uc?export=view&id=1-9GbsSSpT1JRNmmPsid-CL3Q7N4tv_S-" alt="Precision at k" width="70%">
 </div>
 
 ### Generation vs input
