@@ -524,5 +524,4 @@ zsdoc/data
 
 /**/__pycache__/
 /postgres_data/**
-data/*
-langchain_qdrant_10percent/**
+data/**

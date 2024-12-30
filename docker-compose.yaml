@@ -11,10 +11,10 @@ services:
     depends_on:
       - streamlit
     volumes:
-      - ./langchain_qdrant_10percent:/app/data/langchain_qdrant_10percent
+      - ./data:/app/data
     environment:
       - OLLAMA_HOST_FROM_CONTAINER=http://host.docker.internal:11434
-      - DATA_PATH=/app/data/langchain_qdrant_10percent
+      - DATA_PATH=/app/data
 
   streamlit:
     build:

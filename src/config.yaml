@@ -1,5 +1,5 @@
 qdrant:
-  path_to_qdrant_collection: "langchain_qdrant_10percent/"
+  path_to_qdrant_collection: "data/"
   embedder_model_name: "sergeyzh/rubert-tiny-turbo"
   collection_name: "embed_collection_10percent"
 llm:
