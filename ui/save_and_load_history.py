@@ -93,7 +93,7 @@ def delete_user_messages(login_name: str):
             print(f"User {login_name} not found!")
             return False
 
-        db.query(Message).filter(Message.login_name == Session.id).delete()
+        db.query(Message).filter(Message.login_name == session.id).delete()
         db.commit()
         return True
     except SQLAlchemyError as e:

@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 
-from utils import fetch_response_from_api, handle_clear_chat, remove_duplicate_links, reset_session
+from utils import fetch_response_from_api, handle_clear_chat, remove_duplicate_links, reset_session, clear_chat_history
 from save_and_load_history import save_message
 
 def main():
@@ -13,7 +13,7 @@ def main():
             """Чатбот на основе RAG по Habr статьям.
             """
         )
-        st.button('Clear Chat History', on_click=handle_clear_chat)
+        st.button('Clear Chat History', on_click=lambda: handle_clear_chat(st.session_state['login_name'], st.session_state['guest_mode']))
         if st.session_state['guest_mode']:
             st.subheader("Guest Mode")
             
@@ -80,8 +80,6 @@ def main():
             save_message(login_name=st.session_state['login_name'],role="assistant",content=full_response, links=links)
         message = {"role": "assistant", "content": full_response, "links": links}
         st.session_state.messages.append(message)
-        
-    st.session_state
     
 if __name__ == "__main__":
     main()

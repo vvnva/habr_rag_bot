@@ -23,9 +23,9 @@ def clear_chat_history():
     """Очищает историю чата в Streamlit session state."""
     st.session_state.messages = [{"role": "assistant", "content": "How may I assist you today?"}]
 
-def handle_clear_chat():
-    if not st.session_state['guest_mode']:
-        delete_user_messages(st.session_state['login_name'])  
+def handle_clear_chat(login_name, guest_mode):
+    if not guest_mode:
+        delete_user_messages(login_name)  
     clear_chat_history()  
     
 def fetch_response_from_api(user_input: str, chat_history: List[Dict]) -> Dict:
