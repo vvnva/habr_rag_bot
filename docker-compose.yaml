@@ -29,11 +29,11 @@ services:
     environment:
       - RAG_API_URL=http://rag-service:8000/rag-answer
       - DB_NAME=habr
-      - DB_USER=superuser
-      - DB_PASS=1
+      - DB_USER=postgres
+      - DB_PASS=postgres
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DATABASE_URL=postgresql+psycopg2://superuser:1@postgres:5432/habr
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/habr
 
   postgres:
     image: postgres:15
@@ -46,6 +46,20 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
       - ../postgres_data:/var/lib/postgresql/data
+
+  postgres-init:
+    build:
+      context: ./init_db
+      dockerfile: Dockerfile.init
+    container_name: postgres-init
+    depends_on:
+      - postgres
+    environment:
+      - DB_NAME=habr
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
 
 volumes:
   postgres_data:

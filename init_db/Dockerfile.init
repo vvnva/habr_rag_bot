@@ -1,0 +1,13 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+
+COPY ./init_scripts /app/init_scripts
+COPY ./create_db.sql /app/create_db.sql
+COPY ./wait-for-postgres.sh /app/wait-for-postgres.sh
+
+RUN pip install sqlalchemy psycopg2-binary
+
+CMD ["/app/wait-for-postgres.sh", "sh", "-c", "export PGPASSWORD=postgres && psql -h postgres -U postgres -f /app/create_db.sql && python /app/init_scripts/init_db.py"]
