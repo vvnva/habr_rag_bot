@@ -5,7 +5,7 @@ from langchain_ollama.llms import OllamaLLM
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-ollama_host_env = os.getenv("OLLAMA_HOST")
+ollama_host_env = os.getenv("OLLAMA_HOST_FROM_CONTAINER")
 if ollama_host_env:
     config['llm']['base_url'] = ollama_host_env
 

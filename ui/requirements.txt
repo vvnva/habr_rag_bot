@@ -1,2 +1,6 @@
 PyYAML==6.0.2
+psycopg2-binary
+bcrypt
+python-dotenv
 streamlit==1.41.1
+sqlalchemy

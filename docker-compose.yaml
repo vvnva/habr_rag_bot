@@ -11,11 +11,10 @@ services:
     depends_on:
       - streamlit
     volumes:
-      - ./src:/app/src
-      - ../data/langchain_qdrant_10percent:/app/data/langchain_qdrant_10percent
+      - ./data:/app/data
     environment:
-      - OLLAMA_HOST=http://host.docker.internal:11434
-      - DATA_PATH=/app/data/langchain_qdrant_10percent
+      - OLLAMA_HOST_FROM_CONTAINER=http://host.docker.internal:11434
+      - DATA_PATH=/app/data
 
   streamlit:
     build:
@@ -24,7 +23,41 @@ services:
     container_name: streamlit
     ports:
       - "8501:8501"
-    volumes:
-      - ./ui:/app/ui
     environment:
-      - RAG_API_URL=http://rag-service:8000/rag-answer
+      RAG_API_URL: http://rag-service:8000/rag-answer
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  postgres-init:
+    build:
+      context: ./init_db
+      dockerfile: Dockerfile.init
+    container_name: postgres-init
+    depends_on:
+      - postgres
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+
+volumes:
+  postgres_data:
+  

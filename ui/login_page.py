@@ -1,7 +1,7 @@
 import time
 import streamlit as st
 from utils import authenticate_user
-from db.save_and_load_history import load_session_history
+from save_and_load_history import load_session_history
 
 # Pages
 def login_page(guest_mode=False):
