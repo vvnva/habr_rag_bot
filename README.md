@@ -76,6 +76,13 @@
 
 Для запуска используйте следущие команды:
 
+В отдельном терминале:
+```bash
+ollama pull herenickname/t-tech_T-lite-it-1.0:q4_k_m
+ollama serve
+```
+
+В корне репозитория:
 ```bash
 git lfs install
 git lfs pull
